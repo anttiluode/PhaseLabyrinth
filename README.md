@@ -2,6 +2,10 @@
 
 ![pic](pic.png)
 
+Try it now
+
+[Try it!](https://anttiluode.github.io/PhaseLabyrinth/)
+
 **PHASE LABYRINTH** is a browser-based, zero-dependency audiovisual instrument and dynamical systems synthesizer built in a single `index.html` file. 
 
 Instead of sequencing notes on a rigid BPM grid, five autonomous voices live inside an excitable 2D wave medium. Each voice is silenced by incoming activity and **fires into silence** when its local trace fades below threshold—launching physical wave ripples, carving self-reinforcing stigmergy corridors between nodes, and feeding a stereo Web Audio delay labyrinth.
@@ -59,7 +63,7 @@ No build tools, servers, or packages are required:
    ```
 Open index.html directly in any modern desktop browser (Chrome, Edge, Firefox, or Brave) and click POWER AUDIO.
 
-Or run it at its github.io straight. 
+Or run it at its github.io straight. [Open!](https://anttiluode.github.io/PhaseLabyrinth/)
 
 License
 MIT License — see LICENSE for details.
