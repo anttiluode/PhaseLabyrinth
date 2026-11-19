@@ -1,0 +1,2518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PHASE LABYRINTH — Generative Audio-Visual Instrument</title>
+  <style>
+    /* =========================================================================
+       PHASE LABYRINTH — Hardware Synth / Scientific Instrument Design System
+       Zero external dependencies; crisp monospace readouts & obsidian glass UI
+       ========================================================================= */
+    :root {
+      --bg-void: #080c12;
+      --bg-panel: rgba(13, 19, 29, 0.86);
+      --bg-panel-solid: #0d131d;
+      --bg-elevated: rgba(20, 29, 44, 0.9);
+      --border-subtle: rgba(148, 163, 184, 0.14);
+      --border-strong: rgba(148, 163, 184, 0.28);
+      --text-primary: #e6edf7;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+
+      --accent-amber: #f59e0b;
+      --accent-cyan: #22d3ee;
+      --accent-violet: #a78bfa;
+      --accent-emerald: #34d399;
+      --accent-rose: #fb7185;
+      --accent-danger: #ef4444;
+
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --radius-lg: 14px;
+      --radius-md: 10px;
+      --radius-sm: 7px;
+      --shadow-panel: 0 12px 32px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      width: 100%;
+      min-height: 100%;
+      background-color: var(--bg-void);
+      background-image:
+        radial-gradient(circle at 18% 12%, rgba(34, 211, 238, 0.06), transparent 42%),
+        radial-gradient(circle at 82% 85%, rgba(245, 158, 11, 0.05), transparent 45%);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      font-size: 13px;
+      line-height: 1.4;
+      overflow-x: hidden;
+    }
+
+    /* Main Application Shell */
+    .app-shell {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      max-width: 1800px;
+      margin: 0 auto;
+      padding: 12px;
+      gap: 12px;
+    }
+
+    /* Top Header Bar */
+    .top-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px 16px;
+      padding: 10px 16px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-panel);
+      backdrop-filter: blur(12px);
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-emblem {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, var(--accent-cyan), #0e7490 65%, #082f49);
+      box-shadow: 0 0 16px rgba(34, 211, 238, 0.45), inset 0 0 8px rgba(255, 255, 255, 0.35);
+      position: relative;
+      flex-shrink: 0;
+    }
+    .brand-emblem::after {
+      content: "";
+      position: absolute;
+      inset: 6px;
+      border-radius: 50%;
+      border: 1.5px solid rgba(255, 255, 255, 0.65);
+    }
+
+    .brand-title {
+      font-family: var(--font-mono);
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      color: var(--text-primary);
+    }
+    .brand-title span {
+      color: var(--accent-amber);
+    }
+    .brand-sub {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .header-controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Tuning Regime Segmented Control */
+    .segmented {
+      display: inline-flex;
+      background: rgba(8, 12, 18, 0.8);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 2px;
+      gap: 2px;
+    }
+    .segmented button {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      padding: 6px 10px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .segmented button:hover {
+      color: var(--text-primary);
+      background: rgba(255, 255, 255, 0.05);
+    }
+    .segmented button.active {
+      background: rgba(34, 211, 238, 0.16);
+      color: var(--accent-cyan);
+      box-shadow: inset 0 0 0 1px rgba(34, 211, 238, 0.45);
+    }
+
+    /* Hardware Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      padding: 7px 12px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-strong);
+      background: linear-gradient(180deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95));
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: transform 0.08s ease, box-shadow 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+      user-select: none;
+      white-space: nowrap;
+    }
+    .btn:hover {
+      border-color: rgba(226, 232, 240, 0.45);
+      background: linear-gradient(180deg, rgba(40, 54, 76, 0.95), rgba(20, 30, 50, 0.95));
+    }
+    .btn:active {
+      transform: translateY(1px);
+    }
+
+    .btn-power {
+      border-color: rgba(245, 158, 11, 0.65);
+      background: linear-gradient(180deg, rgba(245, 158, 11, 0.25), rgba(180, 83, 9, 0.28));
+      color: #fde68a;
+      box-shadow: 0 0 14px rgba(245, 158, 11, 0.22);
+    }
+    .btn-power.powered {
+      border-color: rgba(52, 211, 153, 0.55);
+      background: linear-gradient(180deg, rgba(16, 185, 129, 0.22), rgba(6, 95, 70, 0.26));
+      color: #a7f3d0;
+      box-shadow: 0 0 12px rgba(52, 211, 153, 0.2);
+    }
+
+    .btn-active-cyan {
+      border-color: rgba(34, 211, 238, 0.7) !important;
+      background: linear-gradient(180deg, rgba(34, 211, 238, 0.24), rgba(14, 116, 144, 0.28)) !important;
+      color: #cffafe !important;
+      box-shadow: 0 0 14px rgba(34, 211, 238, 0.28);
+    }
+    .btn-active-violet {
+      border-color: rgba(167, 139, 250, 0.75) !important;
+      background: linear-gradient(180deg, rgba(167, 139, 250, 0.26), rgba(91, 33, 182, 0.3)) !important;
+      color: #ede9fe !important;
+      box-shadow: 0 0 14px rgba(167, 139, 250, 0.3);
+    }
+    .btn-active-amber {
+      border-color: rgba(245, 158, 11, 0.75) !important;
+      background: linear-gradient(180deg, rgba(245, 158, 11, 0.26), rgba(180, 83, 9, 0.3)) !important;
+      color: #fef3c7 !important;
+      box-shadow: 0 0 14px rgba(245, 158, 11, 0.28);
+    }
+    .btn-active-danger {
+      border-color: rgba(239, 68, 68, 0.8) !important;
+      background: linear-gradient(180deg, rgba(239, 68, 68, 0.28), rgba(153, 27, 27, 0.35)) !important;
+      color: #fecaca !important;
+      box-shadow: 0 0 14px rgba(239, 68, 68, 0.35);
+    }
+
+    .led {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--text-muted);
+      display: inline-block;
+      flex-shrink: 0;
+    }
+    .led.green { background: var(--accent-emerald); box-shadow: 0 0 8px var(--accent-emerald); }
+    .led.amber { background: var(--accent-amber); box-shadow: 0 0 8px var(--accent-amber); }
+    .led.cyan  { background: var(--accent-cyan); box-shadow: 0 0 8px var(--accent-cyan); }
+    .led.red   { background: var(--accent-danger); box-shadow: 0 0 8px var(--accent-danger); animation: blink 1s infinite; }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.25; }
+    }
+
+    /* Main Workspace Grid: 68% Left/Center, 32% Right Sidebar */
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(0, 68%) minmax(300px, 32%);
+      gap: 12px;
+      flex: 1;
+      min-height: 0;
+    }
+
+    /* Left Column: Field Canvas + Bottom Transport/Preset Bar */
+    .field-column {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-height: 0;
+    }
+
+    .panel {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-panel);
+      backdrop-filter: blur(12px);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 13px;
+      border-bottom: 1px solid var(--border-subtle);
+      background: rgba(8, 12, 18, 0.45);
+      gap: 8px;
+    }
+
+    .panel-title {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .panel-title .idx {
+      color: var(--accent-amber);
+    }
+
+    .panel-meta {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+    }
+
+    /* Field Canvas Stage */
+    .field-panel {
+      flex: 1;
+      min-height: 420px;
+      position: relative;
+    }
+
+    .canvas-stage {
+      position: relative;
+      flex: 1;
+      width: 100%;
+      min-height: 360px;
+      background: #06090f;
+      cursor: crosshair;
+      touch-action: none;
+    }
+    .canvas-stage canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .field-hud-bottom {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 7px 13px;
+      border-top: 1px solid var(--border-subtle);
+      background: rgba(8, 12, 18, 0.65);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+    .hud-hints span {
+      color: var(--text-secondary);
+    }
+
+    /* Node Status Strip inside Bottom Transport Bar */
+    .transport-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 14px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-panel);
+    }
+
+    .preset-group {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+    }
+    .preset-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-right: 4px;
+      text-transform: uppercase;
+    }
+
+    .meter-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-secondary);
+    }
+    .vu-bar {
+      width: 84px;
+      height: 7px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid var(--border-subtle);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .vu-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent-emerald), var(--accent-cyan), var(--accent-amber));
+      transition: width 0.05s linear;
+    }
+
+    /* Right Sidebar: 3 Stacked Modules */
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-height: 0;
+    }
+
+    .module-body {
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+    }
+
+    /* Module A: Takens Scope */
+    .scope-wrap {
+      position: relative;
+      width: 100%;
+      height: 158px;
+      background: #05080d;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+    .scope-wrap canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Module B: Fourier Petal Sculptor */
+    .flower-layout {
+      display: grid;
+      grid-template-columns: 156px 1fr;
+      gap: 10px;
+      align-items: center;
+    }
+    .flower-wrap {
+      position: relative;
+      width: 156px;
+      height: 156px;
+      background: radial-gradient(circle, rgba(16, 25, 40, 0.95), #05080d 78%);
+      border: 1px solid var(--border-subtle);
+      border-radius: 50%;
+      overflow: hidden;
+      cursor: grab;
+      touch-action: none;
+      margin: 0 auto;
+    }
+    .flower-wrap:active {
+      cursor: grabbing;
+    }
+    .flower-wrap canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .flower-controls {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .shape-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5px;
+    }
+    .btn-xs {
+      padding: 5px 8px;
+      font-size: 10px;
+    }
+    .harmonic-readout {
+      font-family: var(--font-mono);
+      font-size: 9.5px;
+      color: var(--text-muted);
+      line-height: 1.45;
+      background: rgba(8, 12, 18, 0.55);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 6px 8px;
+    }
+
+    /* Module C: Interventions & Physics Sliders */
+    .action-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+
+    .slider-row {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .slider-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      color: var(--text-secondary);
+    }
+    .slider-val {
+      color: var(--accent-cyan);
+      font-weight: 700;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 5px;
+      border-radius: 3px;
+      background: rgba(30, 41, 59, 0.95);
+      outline: none;
+      cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--accent-cyan);
+      border: 2px solid #080c12;
+      box-shadow: 0 0 8px rgba(34, 211, 238, 0.65);
+      cursor: pointer;
+      transition: transform 0.1s ease;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--accent-cyan);
+      border: 2px solid #080c12;
+      box-shadow: 0 0 8px rgba(34, 211, 238, 0.65);
+      cursor: pointer;
+    }
+
+    /* Toast Notification Banner */
+    .toast {
+      position: fixed;
+      bottom: 18px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: rgba(15, 23, 42, 0.96);
+      border: 1px solid rgba(34, 211, 238, 0.45);
+      color: var(--text-primary);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 9px 16px;
+      border-radius: 999px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.22s ease, transform 0.22s ease;
+      z-index: 1000;
+      max-width: 92vw;
+      text-align: center;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+    .toast.error {
+      border-color: rgba(239, 68, 68, 0.7);
+      color: #fecaca;
+    }
+
+    /* Responsive Breakpoints */
+    @media (max-width: 1060px) {
+      .workspace {
+        grid-template-columns: 1fr;
+      }
+      .field-panel {
+        min-height: 440px;
+      }
+      .sidebar {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+      }
+    }
+
+    @media (max-width: 600px) {
+      .app-shell {
+        padding: 8px;
+        gap: 8px;
+      }
+      .top-bar {
+        padding: 10px 12px;
+      }
+      .flower-layout {
+        grid-template-columns: 1fr;
+      }
+      .field-panel {
+        min-height: 360px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <!-- =====================================================================
+         TOP HEADER BAR
+         ===================================================================== -->
+    <header class="top-bar">
+      <div class="brand-group">
+        <div class="brand-emblem" aria-hidden="true"></div>
+        <div>
+          <div class="brand-title">PHASE <span>LABYRINTH</span></div>
+          <div class="brand-sub">Excitable Wave Field · Fade-Clock Voices · Stigmergy Corridors</div>
+        </div>
+      </div>
+
+      <div class="header-controls">
+        <!-- Tuning Regime Selector -->
+        <div class="segmented" role="group" aria-label="Tuning Regime">
+          <button id="btnTuneHarmonic" class="active" data-tuning="HARMONIC">HARMONIC</button>
+          <button id="btnTunePrimes" data-tuning="ULAM PRIMES">ULAM PRIMES</button>
+          <button id="btnTuneZeta" data-tuning="ZETA ZEROS">ZETA ZEROS</button>
+        </div>
+
+        <!-- Audio Power, Mic Input, Recorder -->
+        <button id="btnPower" class="btn btn-power" title="Initialize Web Audio DSP Engine">
+          <span id="ledPower" class="led amber"></span>
+          <span id="txtPower">POWER ON</span>
+        </button>
+        <button id="btnMic" class="btn" title="Route Live Microphone into Delay Labyrinth & Excitable Field">
+          <span id="ledMic" class="led"></span>
+          <span>MIC INPUT</span>
+        </button>
+        <button id="btnRec" class="btn" title="Record Master Output to Downloadable Audio File">
+          <span id="ledRec" class="led"></span>
+          <span id="txtRec">REC AUDIO</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- =====================================================================
+         MAIN WORKSPACE (68% FIELD / 32% INSTRUMENT MODULES)
+         ===================================================================== -->
+    <main class="workspace">
+      <!-- LEFT / CENTER: 2D EXCITABLE FIELD & TRANSPORT -->
+      <section class="field-column">
+        <div class="panel field-panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <span class="idx">01</span> EXCITABLE FIELD &amp; STIGMERGY CORRIDORS
+            </div>
+            <div class="panel-meta" id="fieldMeta">96×64 WAVE GRID · CLOSED LOOP · 0 PULSES</div>
+          </div>
+
+          <div class="canvas-stage" id="fieldStage">
+            <canvas id="fieldCanvas"></canvas>
+          </div>
+
+          <div class="field-hud-bottom">
+            <div class="hud-hints">
+              <span>DRAG</span> nodes to retune pan &amp; delay · <span>CLICK</span> field to inject wave · <span>SHIFT/RIGHT-CLICK</span> node to mute
+            </div>
+            <div id="corridorReadout">CORRIDOR L/R: 240ms / 320ms</div>
+          </div>
+        </div>
+
+        <!-- BOTTOM TRANSPORT & PRESETS BAR -->
+        <div class="transport-bar">
+          <div class="preset-group">
+            <span class="preset-label">Presets:</span>
+            <button class="btn btn-xs btn-active-cyan" id="presetWoven">WOVEN SILENCE</button>
+            <button class="btn btn-xs" id="presetZeta">ZETA CATHEDRAL</button>
+            <button class="btn btn-xs" id="presetPrime">PRIME PULSE</button>
+          </div>
+
+          <div class="meter-group">
+            <span id="audioStateLabel">DSP STANDBY</span>
+            <div class="vu-bar" aria-label="Output Level Meter">
+              <div class="vu-fill" id="vuFill"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- RIGHT SIDEBAR: 3 STACKED INSTRUMENT MODULES -->
+      <aside class="sidebar">
+        <!-- MODULE A: LIVE TAKENS PHASE-SPACE SCOPE -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <span class="idx">02</span> TAKENS PHASE-SPACE SCOPE
+            </div>
+            <div class="panel-meta">x(t) vs x(t+τ)</div>
+          </div>
+          <div class="module-body">
+            <div class="scope-wrap" id="scopeWrap">
+              <canvas id="scopeCanvas"></canvas>
+            </div>
+            <div class="slider-row">
+              <div class="slider-head">
+                <span>TAU (EMBEDDING DELAY)</span>
+                <span class="slider-val" id="valTau">12 smpl</span>
+              </div>
+              <input type="range" id="sliderTau" min="1" max="40" step="1" value="12" />
+            </div>
+          </div>
+        </div>
+
+        <!-- MODULE B: INTERACTIVE FOURIER PETAL SCULPTOR -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <span class="idx">03</span> FOURIER PETAL SCULPTOR
+            </div>
+            <div class="panel-meta">H1–H8 OVERTONES</div>
+          </div>
+          <div class="module-body">
+            <div class="flower-layout">
+              <div class="flower-wrap" id="flowerWrap" title="Drag petals inward/outward to sculpt harmonic spectrum">
+                <canvas id="flowerCanvas"></canvas>
+              </div>
+              <div class="flower-controls">
+                <div class="shape-grid">
+                  <button class="btn btn-xs" id="shapeSine">SINE</button>
+                  <button class="btn btn-xs" id="shapeGlass">GLASS</button>
+                  <button class="btn btn-xs" id="shapeOrgan">ORGAN</button>
+                  <button class="btn btn-xs" id="shapeRandom">RANDOM</button>
+                </div>
+                <div class="harmonic-readout" id="harmonicReadout">
+                  Drag petals radially to reshape all 5 voice timbres &amp; Freeze drone live.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- MODULE C: INTERVENTIONS & CORRIDOR PHYSICS -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <span class="idx">04</span> INTERVENTIONS &amp; PHYSICS
+            </div>
+            <div class="panel-meta" id="loopStatusMeta">AUTONOMOUS</div>
+          </div>
+          <div class="module-body">
+            <div class="action-grid">
+              <button class="btn btn-active-cyan" id="btnRunPause">
+                <span id="ledRun" class="led green"></span>
+                <span id="txtRunPause">PAUSE</span>
+              </button>
+              <button class="btn" id="btnInject">INJECT IMPULSE</button>
+              <button class="btn" id="btnCutReturns" title="Sever inter-node feedback & delay returns">CUT RETURNS</button>
+              <button class="btn" id="btnFreeze" title="Adelic Phase Freezer — infinite sculpted spectral drone">PHASE FREEZE</button>
+            </div>
+
+            <div class="slider-row">
+              <div class="slider-head">
+                <span>TIME SCALE</span>
+                <span class="slider-val" id="valTimeScale">1.00×</span>
+              </div>
+              <input type="range" id="sliderTimeScale" min="0.3" max="2.5" step="0.05" value="1.0" />
+            </div>
+
+            <div class="slider-row">
+              <div class="slider-head">
+                <span>FADE MEMORY</span>
+                <span class="slider-val" id="valFadeMem">0.62</span>
+              </div>
+              <input type="range" id="sliderFadeMem" min="0.15" max="1.0" step="0.01" value="0.62" />
+            </div>
+
+            <div class="slider-row">
+              <div class="slider-head">
+                <span>CORRIDOR FEEDBACK</span>
+                <span class="slider-val" id="valFeedback">0.56</span>
+              </div>
+              <input type="range" id="sliderFeedback" min="0.0" max="0.88" step="0.01" value="0.56" />
+            </div>
+
+            <div class="slider-row">
+              <div class="slider-head">
+                <span>STIGMERGY COMPACTION</span>
+                <span class="slider-val" id="valStigmergy">0.65</span>
+              </div>
+              <input type="range" id="sliderStigmergy" min="0.0" max="1.0" step="0.01" value="0.65" />
+            </div>
+
+            <button class="btn btn-xs" id="btnClearPaths" style="margin-top:2px;">CLEAR DESIRE PATHS</button>
+          </div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <!-- Non-intrusive Status Toast (Never uses alert/confirm) -->
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    (() => {
+      'use strict';
+
+      /* =======================================================================
+         UTILITIES & SAFE NUMERIC GUARDS
+         ======================================================================= */
+      const clamp = (v, lo, hi) => (Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : lo);
+      const lerp = (a, b, t) => a + (b - a) * t;
+      const dist2D = (x1, y1, x2, y2) => Math.hypot(x2 - x1, y2 - y1);
+
+      let toastTimer = null;
+      function showToast(msg, isError = false) {
+        const el = document.getElementById('toast');
+        if (!el) return;
+        el.textContent = msg;
+        el.classList.toggle('error', Boolean(isError));
+        el.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => el.classList.remove('show'), 3200);
+      }
+
+      /* =======================================================================
+         TUNING REGIMES (Harmonic, Ulam Primes, Riemann Zeta Zeros)
+         ======================================================================= */
+      const TUNINGS = {
+        'HARMONIC': {
+          label: 'HARMONIC DORIAN',
+          // D3 Dorian / Pentatonic frequencies (Hz)
+          freqs: [146.83, 196.00, 261.63, 329.63, 440.00],
+          // Delay corridor ratios (L, R, Cross)
+          delayRatios: [0.375, 0.500, 0.250],
+          baseDelay: 0.42
+        },
+        'ULAM PRIMES': {
+          label: 'ULAM PRIMES',
+          // Prime-scaled frequencies (primes 11, 13, 17, 19, 23 * 13.5 Hz)
+          freqs: [148.50, 175.50, 229.50, 256.50, 310.50],
+          // Coprime delay tap ratios to avoid metallic comb buildup
+          delayRatios: [0.311, 0.479, 0.613],
+          baseDelay: 0.46
+        },
+        'ZETA ZEROS': {
+          label: 'RIEMANN ZETA ZEROS',
+          // First 5 non-trivial Riemann zeta zeros: 14.1347, 21.0220, 25.0109, 30.4249, 32.9351
+          // Scaled into crystalline audible register (* 12.2 Hz)
+          freqs: [172.44, 256.47, 305.13, 371.18, 401.81],
+          // Non-harmonic delay ratios derived from zeta zero spacings
+          delayRatios: [0.353, 0.525, 0.625],
+          baseDelay: 0.54
+        }
+      };
+
+      /* =======================================================================
+         GLOBAL INSTRUMENT STATE
+         ======================================================================= */
+      const state = {
+        running: true,
+        audioPowered: false,
+        tuning: 'HARMONIC',
+        cutReturns: false,
+        phaseFreeze: false,
+        micActive: false,
+        recording: false,
+        recStartTime: 0,
+
+        timeScale: 1.0,
+        fadeMemory: 0.62,       // Higher = slower fade / longer memory
+        corridorFeedback: 0.56, // 0..0.88
+        stigmergyStrength: 0.65,
+        tauSamples: 12,
+        totalPulses: 0,
+
+        // 8 Fourier Harmonics (H1..H8) controlled by the Petal Sculptor
+        harmonics: [0.95, 0.42, 0.28, 0.16, 0.12, 0.08, 0.05, 0.03],
+
+        // 5 Spatial Voice Nodes ("Fires into Silence" fade-clock units)
+        nodes: [
+          {
+            id: 0, name: 'EMBER', color: '#f59e0b', glow: 'rgba(245, 158, 11, 0.55)',
+            x: 0.22, y: 0.60, trace: 0.48, threshold: 0.12, baseFade: 0.24,
+            pulses: 0, muted: false, fireFlash: 0, decaySec: 1.35, tilt: 0.85
+          },
+          {
+            id: 1, name: 'TIDE', color: '#22d3ee', glow: 'rgba(34, 211, 238, 0.55)',
+            x: 0.42, y: 0.34, trace: 0.72, threshold: 0.12, baseFade: 0.29,
+            pulses: 0, muted: false, fireFlash: 0, decaySec: 1.55, tilt: 1.0
+          },
+          {
+            id: 2, name: 'GLASS', color: '#a78bfa', glow: 'rgba(167, 139, 250, 0.55)',
+            x: 0.62, y: 0.62, trace: 0.88, threshold: 0.12, baseFade: 0.33,
+            pulses: 0, muted: false, fireFlash: 0, decaySec: 1.80, tilt: 1.25
+          },
+          {
+            id: 3, name: 'REED', color: '#34d399', glow: 'rgba(52, 211, 153, 0.55)',
+            x: 0.78, y: 0.36, trace: 0.31, threshold: 0.12, baseFade: 0.27,
+            pulses: 0, muted: false, fireFlash: 0, decaySec: 1.15, tilt: 1.1
+          },
+          {
+            id: 4, name: 'PULSE', color: '#fb7185', glow: 'rgba(251, 113, 133, 0.55)',
+            x: 0.50, y: 0.78, trace: 0.64, threshold: 0.12, baseFade: 0.37,
+            pulses: 0, muted: false, fireFlash: 0, decaySec: 0.75, tilt: 0.95
+          }
+        ],
+
+        // 5x5 Stigmergy desire-path conductance matrix [0..1]
+        stigmergy: Array.from({ length: 5 }, () => new Float32Array(5)),
+
+        // Active traveling pulse packets along corridors
+        packets: [],
+
+        // Expanding visual firing rings
+        rings: []
+      };
+
+      /* =======================================================================
+         2D EXCITABLE WAVE FIELD (96 x 64 Grid)
+         ======================================================================= */
+      const GRID_W = 96;
+      const GRID_H = 64;
+      const GRID_N = GRID_W * GRID_H;
+      let wavePrev = new Float32Array(GRID_N);
+      let waveCurr = new Float32Array(GRID_N);
+      let waveNext = new Float32Array(GRID_N);
+
+      // Offscreen canvas for smooth bilinear rendering of the 96x64 wave grid
+      const waveOffscreen = document.createElement('canvas');
+      waveOffscreen.width = GRID_W;
+      waveOffscreen.height = GRID_H;
+      const waveOffCtx = waveOffscreen.getContext('2d');
+      const waveImgData = waveOffCtx.createImageData(GRID_W, GRID_H);
+
+      function injectWave(nx, ny, amplitude = 1.6, radius = 2.4) {
+        const cx = clamp(nx, 0.02, 0.98) * (GRID_W - 1);
+        const cy = clamp(ny, 0.02, 0.98) * (GRID_H - 1);
+        const r2 = radius * radius;
+        const x0 = Math.max(1, Math.floor(cx - radius * 2));
+        const x1 = Math.min(GRID_W - 2, Math.ceil(cx + radius * 2));
+        const y0 = Math.max(1, Math.floor(cy - radius * 2));
+        const y1 = Math.min(GRID_H - 2, Math.ceil(cy + radius * 2));
+
+        for (let y = y0; y <= y1; y++) {
+          for (let x = x0; x <= x1; x++) {
+            const d2 = (x - cx) * (x - cx) + (y - cy) * (y - cy);
+            const g = Math.exp(-d2 / (2 * r2));
+            const idx = y * GRID_W + x;
+            waveCurr[idx] = clamp(waveCurr[idx] + amplitude * g, -3.0, 3.0);
+          }
+        }
+      }
+
+      function stepWaveGrid(substeps = 2) {
+        // Stable 2D wave PDE with soft damping & absorbing edges
+        const c2 = 0.21;
+        const damp = 0.986;
+
+        for (let s = 0; s < substeps; s++) {
+          for (let y = 1; y < GRID_H - 1; y++) {
+            const row = y * GRID_W;
+            for (let x = 1; x < GRID_W - 1; x++) {
+              const i = row + x;
+              const lap =
+                waveCurr[i - 1] +
+                waveCurr[i + 1] +
+                waveCurr[i - GRID_W] +
+                waveCurr[i + GRID_W] -
+                4.0 * waveCurr[i];
+              let next = (2.0 * waveCurr[i] - wavePrev[i] + c2 * lap) * damp;
+              // Soft stability clamp
+              if (next > 2.8) next = 2.8;
+              else if (next < -2.8) next = -2.8;
+              waveNext[i] = next;
+            }
+          }
+          // Absorbing boundary edges
+          for (let x = 0; x < GRID_W; x++) {
+            waveNext[x] = waveNext[GRID_W + x] * 0.55;
+            waveNext[(GRID_H - 1) * GRID_W + x] = waveNext[(GRID_H - 2) * GRID_W + x] * 0.55;
+          }
+          for (let y = 0; y < GRID_H; y++) {
+            waveNext[y * GRID_W] = waveNext[y * GRID_W + 1] * 0.55;
+            waveNext[y * GRID_W + GRID_W - 1] = waveNext[y * GRID_W + GRID_W - 2] * 0.55;
+          }
+
+          // Rotate buffers
+          const tmp = wavePrev;
+          wavePrev = waveCurr;
+          waveCurr = waveNext;
+          waveNext = tmp;
+        }
+      }
+
+      function sampleWaveEnergy(nx, ny) {
+        const gx = Math.round(clamp(nx, 0.02, 0.98) * (GRID_W - 1));
+        const gy = Math.round(clamp(ny, 0.02, 0.98) * (GRID_H - 1));
+        return Math.abs(waveCurr[gy * GRID_W + gx]);
+      }
+
+      /* =======================================================================
+         WEB AUDIO API DSP ENGINE
+         ======================================================================= */
+      const audio = {
+        ctx: null,
+        masterGain: null,
+        compressor: null,
+        analyser: null,
+        timeData: new Float32Array(2048),
+        streamDest: null,
+        recorder: null,
+        recChunks: [],
+
+        // Delay Corridor Network
+        dryBus: null,
+        delayInputL: null,
+        delayInputR: null,
+        delayL: null,
+        delayR: null,
+        dampL: null,
+        dampR: null,
+        shaperL: null,
+        shaperR: null,
+        fbL: null,
+        fbR: null,
+        crossLR: null,
+        crossRL: null,
+        wetGain: null,
+
+        // PeriodicWave built from the 8 Fourier Petals
+        periodicWave: null,
+
+        // Adelic Phase Freezer Drone Bank
+        freezeBus: null,
+        freezeVoices: [],
+
+        // Mic Input Chain
+        micStream: null,
+        micSource: null,
+        micAnalyser: null,
+        micData: new Float32Array(512),
+        micGain: null,
+        lastMicTrigger: 0
+      };
+
+      function makeTanhCurve(amount = 1.6) {
+        const samples = 2048;
+        const curve = new Float32Array(samples);
+        for (let i = 0; i < samples; i++) {
+          const x = (i * 2) / samples - 1;
+          curve[i] = Math.tanh(x * amount);
+        }
+        return curve;
+      }
+
+      function rebuildPeriodicWave() {
+        if (!audio.ctx) return;
+        try {
+          const N = state.harmonics.length;
+          const real = new Float32Array(N + 1);
+          const imag = new Float32Array(N + 1);
+          real[0] = 0;
+          imag[0] = 0;
+          let sumSq = 0;
+          for (let h = 1; h <= N; h++) {
+            const amp = clamp(state.harmonics[h - 1], 0, 1);
+            // Alternate slight phase offsets for richer natural bloom
+            imag[h] = amp / Math.pow(h, 0.25);
+            sumSq += imag[h] * imag[h];
+          }
+          if (sumSq < 1e-4) {
+            imag[1] = 0.5;
+          }
+          audio.periodicWave = audio.ctx.createPeriodicWave(real, imag, { disableNormalization: false });
+
+          // Live-update Phase Freezer drone oscillators if running
+          for (const fv of audio.freezeVoices) {
+            if (fv.oscA) fv.oscA.setPeriodicWave(audio.periodicWave);
+            if (fv.oscB) fv.oscB.setPeriodicWave(audio.periodicWave);
+          }
+        } catch (err) {
+          console.error('PeriodicWave rebuild error:', err);
+        }
+      }
+
+      function initAudioEngine() {
+        if (audio.ctx) {
+          if (audio.ctx.state === 'suspended') {
+            audio.ctx.resume();
+          }
+          return true;
+        }
+        try {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (!AudioCtx) {
+            showToast('Web Audio API is not supported in this browser.', true);
+            return false;
+          }
+
+          const ctx = new AudioCtx();
+          audio.ctx = ctx;
+
+          // Master Output Chain
+          const masterGain = ctx.createGain();
+          masterGain.gain.value = 0.82;
+
+          const compressor = ctx.createDynamicsCompressor();
+          compressor.threshold.value = -14;
+          compressor.knee.value = 18;
+          compressor.ratio.value = 4.5;
+          compressor.attack.value = 0.006;
+          compressor.release.value = 0.18;
+
+          const analyser = ctx.createAnalyser();
+          analyser.fftSize = 2048;
+          analyser.smoothingTimeConstant = 0.6;
+
+          const streamDest = ctx.createMediaStreamDestination();
+
+          compressor.connect(analyser);
+          analyser.connect(masterGain);
+          masterGain.connect(ctx.destination);
+          masterGain.connect(streamDest);
+
+          // Dry Bus
+          const dryBus = ctx.createGain();
+          dryBus.gain.value = 0.78;
+          dryBus.connect(compressor);
+
+          // Stereo Delay Corridor Network (Cross-coupled with lowpass damping & tanh soft-limiter)
+          const delayInputL = ctx.createGain();
+          const delayInputR = ctx.createGain();
+          const delayL = ctx.createDelay(2.0);
+          const delayR = ctx.createDelay(2.0);
+          delayL.delayTime.value = 0.24;
+          delayR.delayTime.value = 0.32;
+
+          const dampL = ctx.createBiquadFilter();
+          dampL.type = 'lowpass';
+          dampL.frequency.value = 3400;
+          dampL.Q.value = 0.6;
+
+          const dampR = ctx.createBiquadFilter();
+          dampR.type = 'lowpass';
+          dampR.frequency.value = 3100;
+          dampR.Q.value = 0.6;
+
+          const shaperCurve = makeTanhCurve(1.45);
+          const shaperL = ctx.createWaveShaper();
+          shaperL.curve = shaperCurve;
+          shaperL.oversample = '2x';
+
+          const shaperR = ctx.createWaveShaper();
+          shaperR.curve = shaperCurve;
+          shaperR.oversample = '2x';
+
+          const fbL = ctx.createGain();
+          const fbR = ctx.createGain();
+          const crossLR = ctx.createGain();
+          const crossRL = ctx.createGain();
+
+          const wetMerger = ctx.createChannelMerger(2);
+          const wetGain = ctx.createGain();
+          wetGain.gain.value = 0.56;
+
+          // Wire L corridor
+          delayInputL.connect(delayL);
+          delayL.connect(dampL);
+          dampL.connect(shaperL);
+          shaperL.connect(fbL);
+          fbL.connect(delayL);
+          shaperL.connect(crossLR);
+          crossLR.connect(delayR);
+          shaperL.connect(wetMerger, 0, 0);
+
+          // Wire R corridor
+          delayInputR.connect(delayR);
+          delayR.connect(dampR);
+          dampR.connect(shaperR);
+          shaperR.connect(fbR);
+          fbR.connect(delayR);
+          shaperR.connect(crossRL);
+          crossRL.connect(delayL);
+          shaperR.connect(wetMerger, 0, 1);
+
+          wetMerger.connect(wetGain);
+          wetGain.connect(compressor);
+
+          // Save references
+          Object.assign(audio, {
+            masterGain, compressor, analyser, streamDest,
+            dryBus, delayInputL, delayInputR,
+            delayL, delayR, dampL, dampR, shaperL, shaperR,
+            fbL, fbR, crossLR, crossRL, wetGain
+          });
+
+          rebuildPeriodicWave();
+          initPhaseFreezer();
+          updateCorridorPhysics();
+
+          state.audioPowered = true;
+          updateAudioUI();
+          showToast('Audio DSP Engine Powered On');
+          return true;
+        } catch (err) {
+          console.error('Audio initialization failed:', err);
+          showToast('Could not initialize Web Audio Engine.', true);
+          return false;
+        }
+      }
+
+      function initPhaseFreezer() {
+        if (!audio.ctx) return;
+        const ctx = audio.ctx;
+        const freezeBus = ctx.createGain();
+        freezeBus.gain.value = 0.0;
+
+        const freezeFilter = ctx.createBiquadFilter();
+        freezeFilter.type = 'lowpass';
+        freezeFilter.frequency.value = 2600;
+        freezeFilter.Q.value = 1.2;
+
+        freezeBus.connect(freezeFilter);
+        freezeFilter.connect(audio.dryBus);
+        freezeFilter.connect(audio.delayInputL);
+        freezeFilter.connect(audio.delayInputR);
+
+        audio.freezeBus = freezeBus;
+        audio.freezeVoices = [];
+
+        const tuning = TUNINGS[state.tuning];
+        for (let i = 0; i < state.nodes.length; i++) {
+          const node = state.nodes[i];
+          const baseFreq = tuning.freqs[i];
+
+          const oscA = ctx.createOscillator();
+          const oscB = ctx.createOscillator();
+          if (audio.periodicWave) {
+            oscA.setPeriodicWave(audio.periodicWave);
+            oscB.setPeriodicWave(audio.periodicWave);
+          }
+          oscA.frequency.value = baseFreq;
+          oscB.frequency.value = baseFreq * 1.0035; // gentle stereo shimmer detune
+
+          const vGain = ctx.createGain();
+          vGain.gain.value = node.muted ? 0.0 : 0.075;
+
+          const panner = ctx.createStereoPanner();
+          panner.pan.value = clamp(node.x * 2 - 1, -0.95, 0.95);
+
+          oscA.connect(vGain);
+          oscB.connect(vGain);
+          vGain.connect(panner);
+          panner.connect(freezeBus);
+
+          oscA.start();
+          oscB.start();
+
+          audio.freezeVoices.push({ oscA, oscB, vGain, panner });
+        }
+      }
+
+      function updateFreezeFrequenciesAndPans() {
+        if (!audio.ctx || !audio.freezeVoices.length) return;
+        const now = audio.ctx.currentTime;
+        const tuning = TUNINGS[state.tuning];
+        for (let i = 0; i < audio.freezeVoices.length; i++) {
+          const fv = audio.freezeVoices[i];
+          const node = state.nodes[i];
+          const f = clamp(tuning.freqs[i], 40, 2000);
+          fv.oscA.frequency.setTargetAtTime(f, now, 0.08);
+          fv.oscB.frequency.setTargetAtTime(f * 1.0038, now, 0.08);
+          fv.panner.pan.setTargetAtTime(clamp(node.x * 2 - 1, -0.95, 0.95), now, 0.05);
+          fv.vGain.gain.setTargetAtTime(node.muted ? 0.0001 : 0.072, now, 0.08);
+        }
+      }
+
+      function updateCorridorPhysics() {
+        // Calculate average pairwise spatial distance among active nodes
+        let sumDist = 0;
+        let count = 0;
+        let leftDist = 0;
+        let rightDist = 0;
+        for (let i = 0; i < state.nodes.length; i++) {
+          for (let j = i + 1; j < state.nodes.length; j++) {
+            const d = dist2D(state.nodes[i].x, state.nodes[i].y, state.nodes[j].x, state.nodes[j].y);
+            sumDist += d;
+            count++;
+            if (state.nodes[i].x < 0.5 || state.nodes[j].x < 0.5) leftDist += d;
+            if (state.nodes[i].x >= 0.5 || state.nodes[j].x >= 0.5) rightDist += d;
+          }
+        }
+        const avgD = count > 0 ? sumDist / count : 0.45;
+        const tuning = TUNINGS[state.tuning];
+        const spatialScale = clamp(0.55 + avgD * 1.15, 0.35, 1.8);
+        const timeL = clamp(tuning.baseDelay * tuning.delayRatios[0] * spatialScale * 1.45, 0.04, 1.45);
+        const timeR = clamp(tuning.baseDelay * tuning.delayRatios[1] * spatialScale * 1.45, 0.05, 1.65);
+
+        const readout = document.getElementById('corridorReadout');
+        if (readout) {
+          readout.textContent = `CORRIDOR L/R: ${Math.round(timeL * 1000)}ms / ${Math.round(timeR * 1000)}ms`;
+        }
+
+        if (!audio.ctx) return;
+        const now = audio.ctx.currentTime;
+        audio.delayL.delayTime.setTargetAtTime(timeL, now, 0.06);
+        audio.delayR.delayTime.setTargetAtTime(timeR, now, 0.06);
+
+        // When CUT RETURNS is active, mute delay feedback loops cleanly
+        const effFb = state.cutReturns ? 0.0 : clamp(state.corridorFeedback, 0, 0.88);
+        // Distribute total feedback between self-loop and cross-corridor stereo bounce
+        const selfFb = effFb * 0.68;
+        const crossFb = effFb * 0.28;
+
+        audio.fbL.gain.setTargetAtTime(selfFb, now, 0.04);
+        audio.fbR.gain.setTargetAtTime(selfFb, now, 0.04);
+        audio.crossLR.gain.setTargetAtTime(crossFb, now, 0.04);
+        audio.crossRL.gain.setTargetAtTime(crossFb, now, 0.04);
+
+        // Freeze bus smooth crossfade
+        if (audio.freezeBus) {
+          audio.freezeBus.gain.setTargetAtTime(state.phaseFreeze ? 0.85 : 0.0, now, 0.14);
+        }
+      }
+
+      function triggerVoiceNote(node, intensity = 0.85) {
+        if (!audio.ctx || audio.ctx.state !== 'running' || node.muted) return;
+        try {
+          const ctx = audio.ctx;
+          const now = ctx.currentTime;
+          const tuning = TUNINGS[state.tuning];
+          // Subtle pitch micro-shift from node Y coordinate (+/- 2.5% expression)
+          const yDetune = 1.0 + (0.5 - node.y) * 0.03;
+          const freq = clamp(tuning.freqs[node.id] * yDetune, 45, 2400);
+
+          const osc = ctx.createOscillator();
+          if (audio.periodicWave) {
+            osc.setPeriodicWave(audio.periodicWave);
+          } else {
+            osc.type = 'triangle';
+          }
+          osc.frequency.setValueAtTime(freq, now);
+
+          // Subtle resonant filter shaped by node Y & harmonic brightness
+          const filter = ctx.createBiquadFilter();
+          filter.type = 'lowpass';
+          const bright = clamp(900 + (1 - node.y) * 3400 * node.tilt, 500, 7500);
+          filter.frequency.setValueAtTime(bright * 1.45, now);
+          filter.frequency.exponentialRampToValueAtTime(Math.max(260, bright * 0.42), now + node.decaySec);
+          filter.Q.value = state.tuning === 'ZETA ZEROS' ? 2.4 : 1.1;
+
+          // Envelope (click-free attack + natural exponential decay)
+          const env = ctx.createGain();
+          const peak = clamp(0.18 * intensity, 0.04, 0.26);
+          env.gain.setValueAtTime(0.0001, now);
+          env.gain.linearRampToValueAtTime(peak, now + 0.014);
+          env.gain.exponentialRampToValueAtTime(0.0001, now + node.decaySec);
+
+          // Spatial stereo pan from node X
+          const panner = ctx.createStereoPanner();
+          panner.pan.setValueAtTime(clamp(node.x * 2 - 1, -0.95, 0.95), now);
+
+          osc.connect(filter);
+          filter.connect(env);
+          env.connect(panner);
+
+          panner.connect(audio.dryBus);
+
+          // Route into L/R delay corridors proportional to stereo position
+          const sendL = ctx.createGain();
+          const sendR = ctx.createGain();
+          const panNorm = clamp(node.x, 0, 1);
+          sendL.gain.value = (1 - panNorm * 0.6) * 0.55;
+          sendR.gain.value = (0.4 + panNorm * 0.6) * 0.55;
+          env.connect(sendL);
+          env.connect(sendR);
+          sendL.connect(audio.delayInputL);
+          sendR.connect(audio.delayInputR);
+
+          osc.start(now);
+          osc.stop(now + node.decaySec + 0.05);
+        } catch (err) {
+          console.error('Voice trigger error:', err);
+        }
+      }
+
+      function triggerFieldImpulseThump(nx, ny) {
+        if (!audio.ctx || audio.ctx.state !== 'running') return;
+        try {
+          const ctx = audio.ctx;
+          const now = ctx.currentTime;
+          const osc = ctx.createOscillator();
+          osc.type = 'sine';
+          const startF = lerp(210, 95, clamp(ny, 0, 1));
+          osc.frequency.setValueAtTime(startF, now);
+          osc.frequency.exponentialRampToValueAtTime(42, now + 0.16);
+
+          const env = ctx.createGain();
+          env.gain.setValueAtTime(0.0001, now);
+          env.gain.linearRampToValueAtTime(0.12, now + 0.008);
+          env.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
+
+          const panner = ctx.createStereoPanner();
+          panner.pan.setValueAtTime(clamp(nx * 2 - 1, -0.9, 0.9), now);
+
+          osc.connect(env);
+          env.connect(panner);
+          panner.connect(audio.dryBus);
+          env.connect(audio.delayInputL);
+          env.connect(audio.delayInputR);
+
+          osc.start(now);
+          osc.stop(now + 0.2);
+        } catch (err) {
+          console.error('Impulse thump error:', err);
+        }
+      }
+
+      /* =======================================================================
+         MICROPHONE INPUT (Graceful fallback if denied)
+         ======================================================================= */
+      async function toggleMicInput() {
+        if (state.micActive) {
+          stopMicInput();
+          return;
+        }
+        if (!initAudioEngine()) return;
+
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          showToast('Microphone API unavailable in this browser context.', true);
+          return;
+        }
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            audio: { echoCancellation: true, noiseSuppression: false, autoGainControl: false }
+          });
+          const ctx = audio.ctx;
+          const src = ctx.createMediaStreamSource(stream);
+          const hp = ctx.createBiquadFilter();
+          hp.type = 'highpass';
+          hp.frequency.value = 90;
+
+          const micGain = ctx.createGain();
+          micGain.gain.value = 0.45;
+
+          const micAnalyser = ctx.createAnalyser();
+          micAnalyser.fftSize = 512;
+
+          src.connect(hp);
+          hp.connect(micAnalyser);
+          hp.connect(micGain);
+          micGain.connect(audio.delayInputL);
+          micGain.connect(audio.delayInputR);
+
+          audio.micStream = stream;
+          audio.micSource = src;
+          audio.micAnalyser = micAnalyser;
+          audio.micGain = micGain;
+          state.micActive = true;
+          updateAudioUI();
+          showToast('Mic Input Active — sound excites Delay Corridors & Field');
+        } catch (err) {
+          console.warn('Mic permission error:', err);
+          showToast('Microphone access denied or unavailable.', true);
+          state.micActive = false;
+          updateAudioUI();
+        }
+      }
+
+      function stopMicInput() {
+        try {
+          if (audio.micSource) audio.micSource.disconnect();
+          if (audio.micGain) audio.micGain.disconnect();
+          if (audio.micStream) {
+            audio.micStream.getTracks().forEach(t => t.stop());
+          }
+        } catch (_) {}
+        audio.micStream = null;
+        audio.micSource = null;
+        audio.micAnalyser = null;
+        audio.micGain = null;
+        state.micActive = false;
+        updateAudioUI();
+        showToast('Mic Input Disconnected');
+      }
+
+      function processMicOnset(nowMs) {
+        if (!state.micActive || !audio.micAnalyser) return;
+        audio.micAnalyser.getFloatTimeDomainData(audio.micData);
+        let sum = 0;
+        for (let i = 0; i < audio.micData.length; i++) {
+          sum += audio.micData[i] * audio.micData[i];
+        }
+        const rms = Math.sqrt(sum / audio.micData.length);
+        if (rms > 0.055 && nowMs - audio.lastMicTrigger > 160) {
+          audio.lastMicTrigger = nowMs;
+          // Excite a field point near the center / nearest active node
+          const ix = 0.5 + (Math.random() - 0.5) * 0.22;
+          const iy = 0.5 + (Math.random() - 0.5) * 0.22;
+          injectWave(ix, iy, clamp(rms * 14, 0.7, 2.2), 2.8);
+
+          // Find nearest node and refill its trace
+          let best = state.nodes[0];
+          let bestD = Infinity;
+          for (const n of state.nodes) {
+            const d = dist2D(ix, iy, n.x, n.y);
+            if (d < bestD) { bestD = d; best = n; }
+          }
+          if (best) {
+            best.trace = clamp(best.trace + rms * 3.0, 0, 1.0);
+          }
+        }
+      }
+
+      /* =======================================================================
+         AUDIO RECORDER (MediaRecorder -> downloadable .webm / .ogg)
+         ======================================================================= */
+      function toggleRecording() {
+        if (state.recording) {
+          stopRecording();
+          return;
+        }
+        if (!initAudioEngine()) return;
+        if (typeof MediaRecorder === 'undefined') {
+          showToast('MediaRecorder is not supported in this browser.', true);
+          return;
+        }
+        try {
+          const candidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/ogg'];
+          const mimeType = candidates.find(m => MediaRecorder.isTypeSupported(m)) || '';
+          const recorder = mimeType
+            ? new MediaRecorder(audio.streamDest.stream, { mimeType })
+            : new MediaRecorder(audio.streamDest.stream);
+
+          audio.recChunks = [];
+          recorder.ondataavailable = e => {
+            if (e.data && e.data.size > 0) audio.recChunks.push(e.data);
+          };
+          recorder.onstop = () => {
+            try {
+              const ext = (recorder.mimeType || '').includes('ogg') ? 'ogg' : 'webm';
+              const blob = new Blob(audio.recChunks, { type: recorder.mimeType || 'audio/webm' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+              a.href = url;
+              a.download = `phase-labyrinth-${stamp}.${ext}`;
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              setTimeout(() => URL.revokeObjectURL(url), 5000);
+              showToast(`Saved audio recording (.${ext})`);
+            } catch (err) {
+              console.error('Recording export error:', err);
+              showToast('Error exporting audio file.', true);
+            }
+          };
+
+          recorder.start(250);
+          audio.recorder = recorder;
+          state.recording = true;
+          state.recStartTime = performance.now();
+          updateAudioUI();
+          showToast('Recording Master Output...');
+        } catch (err) {
+          console.error('MediaRecorder start failed:', err);
+          showToast('Could not start audio recording.', true);
+        }
+      }
+
+      function stopRecording() {
+        try {
+          if (audio.recorder && audio.recorder.state !== 'inactive') {
+            audio.recorder.stop();
+          }
+        } catch (_) {}
+        state.recording = false;
+        updateAudioUI();
+      }
+
+      /* =======================================================================
+         SIMULATION LOOP: FADE-INTO-SILENCE + STIGMERGY CORRIDORS
+         ======================================================================= */
+      function stepSimulation(dt) {
+        if (!state.running) return;
+        const scaledDt = clamp(dt * state.timeScale, 0.001, 0.08);
+
+        // 1. Step 2D Wave Field
+        const substeps = state.timeScale > 1.5 ? 3 : 2;
+        stepWaveGrid(substeps);
+
+        // 2. Slow stigmergy decay (compacted paths persist longer with higher strength)
+        const stigDecay = lerp(0.06, 0.006, state.stigmergyStrength) * scaledDt;
+        for (let i = 0; i < 5; i++) {
+          for (let j = 0; j < 5; j++) {
+            if (state.stigmergy[i][j] > 0) {
+              state.stigmergy[i][j] = Math.max(0, state.stigmergy[i][j] - stigDecay);
+            }
+          }
+        }
+
+        // 3. Advance traveling corridor pulse packets
+        for (let p = state.packets.length - 1; p >= 0; p--) {
+          const pkt = state.packets[p];
+          pkt.progress += pkt.speed * scaledDt;
+          if (pkt.progress >= 1.0) {
+            const target = state.nodes[pkt.to];
+            if (target && !state.cutReturns) {
+              // Arriving pulse refills target's trace (silencing it!)
+              const boost = pkt.strength * (0.28 + 0.35 * state.stigmergy[pkt.from][pkt.to]);
+              target.trace = clamp(target.trace + boost, 0, 1.0);
+              // Compact desire-path along this corridor
+              const compactGain = 0.14 * state.stigmergyStrength;
+              state.stigmergy[pkt.from][pkt.to] = clamp(state.stigmergy[pkt.from][pkt.to] + compactGain, 0, 1);
+              state.stigmergy[pkt.to][pkt.from] = clamp(state.stigmergy[pkt.to][pkt.from] + compactGain * 0.7, 0, 1);
+            }
+            state.packets.splice(p, 1);
+          }
+        }
+
+        // 4. Advance expanding visual rings
+        for (let r = state.rings.length - 1; r >= 0; r--) {
+          const ring = state.rings[r];
+          ring.radius += scaledDt * 0.42;
+          ring.alpha -= scaledDt * 1.1;
+          if (ring.alpha <= 0) state.rings.splice(r, 1);
+        }
+
+        // 5. Step Fade-Clock Nodes ("Fires into Silence")
+        // Higher fadeMemory => slower decay
+        const memFactor = lerp(2.1, 0.36, clamp(state.fadeMemory, 0.15, 1.0));
+
+        for (const node of state.nodes) {
+          node.fireFlash = Math.max(0, node.fireFlash - dt * 2.6);
+
+          // Incoming 2D wave energy at node location refills trace (keeps node quiet while field is active)
+          if (!state.cutReturns) {
+            const waveE = sampleWaveEnergy(node.x, node.y);
+            if (waveE > 0.04) {
+              node.trace = clamp(node.trace + waveE * 0.42 * scaledDt, 0, 1.0);
+            }
+          }
+
+          // Continuous memory decay
+          node.trace -= node.baseFade * memFactor * scaledDt;
+
+          // FIRE INTO SILENCE when trace drops below release threshold
+          if (node.trace <= node.threshold) {
+            node.trace = 1.0;
+            node.fireFlash = 1.0;
+            if (!node.muted) {
+              node.pulses++;
+              state.totalPulses++;
+              // Launch wave ripple
+              injectWave(node.x, node.y, 1.85, 2.2);
+              // Spawn visual ring
+              state.rings.push({ x: node.x, y: node.y, radius: 0.02, alpha: 0.9, color: node.color });
+              // Trigger real Web Audio note
+              triggerVoiceNote(node, 0.88);
+
+              // Dispatch corridor pulse packets to neighbours (unless CUT RETURNS is active)
+              if (!state.cutReturns) {
+                for (const other of state.nodes) {
+                  if (other.id === node.id) continue;
+                  const d = dist2D(node.x, node.y, other.x, other.y);
+                  const conduct = state.stigmergy[node.id][other.id];
+                  // Proximity + compacted desire-paths govern packet coupling
+                  if (d < 0.58 || conduct > 0.25) {
+                    state.packets.push({
+                      from: node.id,
+                      to: other.id,
+                      progress: 0,
+                      speed: clamp(0.65 / Math.max(0.18, d) * (1 + conduct * 0.35), 0.75, 2.4),
+                      strength: clamp(0.95 - d * 0.85 + conduct * 0.45, 0.22, 1.0),
+                      color: node.color
+                    });
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      /* =======================================================================
+         CANVAS 1: 2D EXCITABLE FIELD & STIGMERGY RENDERER
+         ======================================================================= */
+      const fieldStage = document.getElementById('fieldStage');
+      const fieldCanvas = document.getElementById('fieldCanvas');
+      const fieldCtx = fieldCanvas.getContext('2d');
+      let fieldW = 640, fieldH = 420;
+
+      function resizeCanvasToParent(canvas, parent) {
+        const rect = parent.getBoundingClientRect();
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const w = Math.max(100, Math.floor(rect.width));
+        const h = Math.max(100, Math.floor(rect.height));
+        canvas.width = Math.floor(w * dpr);
+        canvas.height = Math.floor(h * dpr);
+        const ctx = canvas.getContext('2d');
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        return { w, h };
+      }
+
+      function renderFieldCanvas() {
+        const ctx = fieldCtx;
+        const w = fieldW;
+        const h = fieldH;
+
+        // 1. Render 96x64 wave grid into ImageData with bioluminescent cyan/amber palette
+        const data = waveImgData.data;
+        for (let i = 0; i < GRID_N; i++) {
+          const v = waveCurr[i];
+          const av = Math.abs(v);
+          const p = i * 4;
+          if (v >= 0) {
+            // Positive crest -> Cyan / Ice Blue
+            data[p]     = clamp(6 + av * 38, 0, 255);
+            data[p + 1] = clamp(10 + av * 165, 0, 255);
+            data[p + 2] = clamp(18 + av * 210, 0, 255);
+          } else {
+            // Negative trough -> Warm Amber / Deep Violet
+            data[p]     = clamp(6 + av * 155, 0, 255);
+            data[p + 1] = clamp(9 + av * 72, 0, 255);
+            data[p + 2] = clamp(18 + av * 115, 0, 255);
+          }
+          data[p + 3] = 255;
+        }
+        waveOffCtx.putImageData(waveImgData, 0, 0);
+
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(waveOffscreen, 0, 0, w, h);
+
+        // 2. Subtle scientific coordinate grid
+        ctx.save();
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.075)';
+        ctx.lineWidth = 1;
+        const cols = 12;
+        const rows = 8;
+        for (let c = 1; c < cols; c++) {
+          const x = (w / cols) * c;
+          ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+        }
+        for (let r = 1; r < rows; r++) {
+          const y = (h / rows) * r;
+          ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+        }
+        ctx.restore();
+
+        // 3. Stigmergy "Desire Paths" & Delay Corridors
+        ctx.save();
+        for (let i = 0; i < state.nodes.length; i++) {
+          for (let j = i + 1; j < state.nodes.length; j++) {
+            const a = state.nodes[i];
+            const b = state.nodes[j];
+            const d = dist2D(a.x, a.y, b.x, b.y);
+            const conduct = Math.max(state.stigmergy[i][j], state.stigmergy[j][i]);
+            if (d > 0.65 && conduct < 0.05) continue;
+
+            const ax = a.x * w, ay = a.y * h;
+            const bx = b.x * w, by = b.y * h;
+
+            if (state.cutReturns) {
+              ctx.setLineDash([4, 6]);
+              ctx.strokeStyle = 'rgba(239, 68, 68, 0.16)';
+              ctx.lineWidth = 1;
+            } else {
+              ctx.setLineDash([]);
+              const alpha = clamp(0.08 + conduct * 0.62, 0.06, 0.78);
+              const grad = ctx.createLinearGradient(ax, ay, bx, by);
+              grad.addColorStop(0, a.color);
+              grad.addColorStop(1, b.color);
+              ctx.strokeStyle = grad;
+              ctx.globalAlpha = alpha;
+              ctx.lineWidth = 1.0 + conduct * 3.4;
+              if (conduct > 0.25) {
+                ctx.shadowColor = '#22d3ee';
+                ctx.shadowBlur = 10 * conduct;
+              }
+            }
+
+            ctx.beginPath();
+            ctx.moveTo(ax, ay);
+            ctx.lineTo(bx, by);
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+            ctx.globalAlpha = 1;
+          }
+        }
+        ctx.restore();
+
+        // 4. Traveling Pulse Packets
+        ctx.save();
+        for (const pkt of state.packets) {
+          const a = state.nodes[pkt.from];
+          const b = state.nodes[pkt.to];
+          const px = lerp(a.x, b.x, pkt.progress) * w;
+          const py = lerp(a.y, b.y, pkt.progress) * h;
+
+          ctx.fillStyle = pkt.color;
+          ctx.shadowColor = pkt.color;
+          ctx.shadowBlur = 12;
+          ctx.beginPath();
+          ctx.arc(px, py, 3.6, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+
+        // 5. Expanding Firing Rings
+        ctx.save();
+        for (const ring of state.rings) {
+          const rx = ring.x * w;
+          const ry = ring.y * h;
+          const rad = ring.radius * Math.min(w, h);
+          ctx.strokeStyle = ring.color;
+          ctx.globalAlpha = clamp(ring.alpha, 0, 1);
+          ctx.lineWidth = 1.8;
+          ctx.beginPath();
+          ctx.arc(rx, ry, rad, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        ctx.restore();
+
+        // 6. 5 Interactive Fade-Clock Nodes
+        for (const node of state.nodes) {
+          const nx = node.x * w;
+          const ny = node.y * h;
+          const baseR = 20;
+
+          ctx.save();
+
+          // Outer ambient halo
+          const haloR = baseR + 14 + node.fireFlash * 16;
+          const halo = ctx.createRadialGradient(nx, ny, 4, nx, ny, haloR);
+          halo.addColorStop(0, node.muted ? 'rgba(100, 116, 139, 0.22)' : node.glow);
+          halo.addColorStop(1, 'rgba(0, 0, 0, 0)');
+          ctx.fillStyle = halo;
+          ctx.beginPath();
+          ctx.arc(nx, ny, haloR, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Threshold ring (dashed faint guide)
+          ctx.strokeStyle = 'rgba(148, 163, 184, 0.22)';
+          ctx.lineWidth = 1.5;
+          if (node.muted) ctx.setLineDash([3, 3]);
+          ctx.beginPath();
+          ctx.arc(nx, ny, baseR + 5, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.setLineDash([]);
+
+          // Live Fade-Clock Trace Arc (shrinks clockwise toward firing threshold)
+          const traceNorm = clamp((node.trace - node.threshold) / (1 - node.threshold), 0, 1);
+          ctx.strokeStyle = node.muted ? '#475569' : node.color;
+          ctx.lineWidth = 3.2;
+          ctx.lineCap = 'round';
+          ctx.shadowColor = node.muted ? 'transparent' : node.color;
+          ctx.shadowBlur = node.fireFlash > 0.1 ? 16 : 6;
+          ctx.beginPath();
+          ctx.arc(nx, ny, baseR + 5, -Math.PI / 2, -Math.PI / 2 + traceNorm * Math.PI * 2);
+          ctx.stroke();
+          ctx.shadowBlur = 0;
+
+          // Core orb
+          ctx.fillStyle = node.muted ? '#1e293b' : '#0b1220';
+          ctx.strokeStyle = node.muted ? '#64748b' : node.color;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(nx, ny, baseR - 2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          // Inner glowing nucleus
+          ctx.fillStyle = node.muted ? '#475569' : node.color;
+          const coreR = 5.5 + node.fireFlash * 4.5;
+          ctx.beginPath();
+          ctx.arc(nx, ny, coreR, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Labels: Name + live trace & pulse count
+          ctx.font = '700 10.5px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
+          ctx.textAlign = 'center';
+          ctx.fillStyle = node.muted ? '#64748b' : '#f1f5f9';
+          ctx.fillText(node.name, nx, ny - baseR - 12);
+
+          ctx.font = '500 9.5px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
+          ctx.fillStyle = node.muted ? '#64748b' : node.color;
+          const subTxt = node.muted
+            ? 'MUTED'
+            : `T:${node.trace.toFixed(2)} · #${node.pulses}`;
+          ctx.fillText(subTxt, nx, ny + baseR + 18);
+
+          ctx.restore();
+        }
+
+        // Update top-right field metadata
+        const meta = document.getElementById('fieldMeta');
+        if (meta) {
+          const loopTxt = state.cutReturns ? 'OPEN LOOP (CUT)' : 'CLOSED LOOP';
+          meta.textContent = `96×64 WAVE GRID · ${loopTxt} · ${state.totalPulses} PULSES`;
+        }
+      }
+
+      /* Field Pointer Interaction (Drag nodes, click field to inject, Shift/Right-click to mute) */
+      let draggingNode = null;
+
+      function getCanvasNormPos(e, canvas) {
+        const rect = canvas.getBoundingClientRect();
+        return {
+          nx: clamp((e.clientX - rect.left) / rect.width, 0.04, 0.96),
+          ny: clamp((e.clientY - rect.top) / rect.height, 0.06, 0.94),
+          px: e.clientX - rect.left,
+          py: e.clientY - rect.top,
+          w: rect.width,
+          h: rect.height
+        };
+      }
+
+      function hitTestNode(px, py, w, h) {
+        for (const node of state.nodes) {
+          if (dist2D(px, py, node.x * w, node.y * h) <= 28) {
+            return node;
+          }
+        }
+        return null;
+      }
+
+      fieldCanvas.addEventListener('contextmenu', e => {
+        e.preventDefault();
+        const pos = getCanvasNormPos(e, fieldCanvas);
+        const hit = hitTestNode(pos.px, pos.py, pos.w, pos.h);
+        if (hit) {
+          hit.muted = !hit.muted;
+          updateFreezeFrequenciesAndPans();
+          showToast(`${hit.name} ${hit.muted ? 'muted' : 'unmuted'}`);
+        }
+      });
+
+      fieldCanvas.addEventListener('pointerdown', e => {
+        if (e.button === 2) return; // handled by contextmenu
+        if (!state.audioPowered) initAudioEngine();
+
+        const pos = getCanvasNormPos(e, fieldCanvas);
+        const hit = hitTestNode(pos.px, pos.py, pos.w, pos.h);
+
+        if (hit) {
+          if (e.shiftKey) {
+            hit.muted = !hit.muted;
+            updateFreezeFrequenciesAndPans();
+            showToast(`${hit.name} ${hit.muted ? 'muted' : 'unmuted'}`);
+            return;
+          }
+          draggingNode = hit;
+          fieldCanvas.setPointerCapture(e.pointerId);
+          fieldStage.style.cursor = 'grabbing';
+        } else {
+          // Click empty field -> inject wave impulse & tactile thump
+          injectWave(pos.nx, pos.ny, 2.2, 2.8);
+          state.rings.push({ x: pos.nx, y: pos.ny, radius: 0.01, alpha: 0.75, color: '#22d3ee' });
+          triggerFieldImpulseThump(pos.nx, pos.ny);
+        }
+      });
+
+      fieldCanvas.addEventListener('pointermove', e => {
+        const pos = getCanvasNormPos(e, fieldCanvas);
+        if (draggingNode) {
+          draggingNode.x = pos.nx;
+          draggingNode.y = pos.ny;
+          updateCorridorPhysics();
+          updateFreezeFrequenciesAndPans();
+        } else {
+          const hit = hitTestNode(pos.px, pos.py, pos.w, pos.h);
+          fieldStage.style.cursor = hit ? 'grab' : 'crosshair';
+        }
+      });
+
+      function endNodeDrag(e) {
+        if (draggingNode) {
+          try { fieldCanvas.releasePointerCapture(e.pointerId); } catch (_) {}
+          draggingNode = null;
+          fieldStage.style.cursor = 'crosshair';
+        }
+      }
+      fieldCanvas.addEventListener('pointerup', endNodeDrag);
+      fieldCanvas.addEventListener('pointercancel', endNodeDrag);
+
+      /* =======================================================================
+         CANVAS 2: LIVE TAKENS PHASE-SPACE SCOPE
+         ======================================================================= */
+      const scopeWrap = document.getElementById('scopeWrap');
+      const scopeCanvas = document.getElementById('scopeCanvas');
+      const scopeCtx = scopeCanvas.getContext('2d');
+      let scopeW = 300, scopeH = 158;
+
+      function renderTakensScope() {
+        const ctx = scopeCtx;
+        const w = scopeW;
+        const h = scopeH;
+
+        // Phosphor persistence fade
+        ctx.fillStyle = 'rgba(5, 8, 13, 0.22)';
+        ctx.fillRect(0, 0, w, h);
+
+        // Faint oscilloscope reticle
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.09)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(w / 2, 0); ctx.lineTo(w / 2, h);
+        ctx.moveTo(0, h / 2); ctx.lineTo(w, h / 2);
+        ctx.stroke();
+
+        let rms = 0;
+        if (audio.analyser && state.audioPowered) {
+          audio.analyser.getFloatTimeDomainData(audio.timeData);
+          const buf = audio.timeData;
+          const tau = clamp(state.tauSamples, 1, 40);
+          const len = buf.length - tau;
+          const scaleX = w * 0.44;
+          const scaleY = h * 0.44;
+          const cx = w * 0.5;
+          const cy = h * 0.5;
+
+          // Compute RMS for VU meter
+          for (let i = 0; i < buf.length; i += 4) {
+            rms += buf[i] * buf[i];
+          }
+          rms = Math.sqrt(rms / (buf.length / 4));
+
+          // Plot delay-embedded attractor (x[i], x[i + tau])
+          ctx.save();
+          const grad = ctx.createLinearGradient(0, 0, w, h);
+          grad.addColorStop(0, '#22d3ee');
+          grad.addColorStop(0.5, '#a78bfa');
+          grad.addColorStop(1, '#f59e0b');
+          ctx.strokeStyle = grad;
+          ctx.lineWidth = 1.4;
+          ctx.shadowColor = '#22d3ee';
+          ctx.shadowBlur = 6;
+          ctx.beginPath();
+
+          // Step by 2 for crisp 60fps trajectory
+          for (let i = 0; i < len; i += 2) {
+            const x = cx + clamp(buf[i] * 2.1, -1.0, 1.0) * scaleX;
+            const y = cy - clamp(buf[i + tau] * 2.1, -1.0, 1.0) * scaleY;
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          }
+          ctx.stroke();
+          ctx.restore();
+        } else {
+          // Idle standby Lissajous hint
+          ctx.fillStyle = 'rgba(100, 116, 139, 0.55)';
+          ctx.font = '600 10px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText('POWER ON AUDIO TO VIEW ATTRACTOR', w / 2, h / 2 + 4);
+        }
+
+        // Update VU meter bar
+        const vu = document.getElementById('vuFill');
+        if (vu) {
+          const pct = clamp(rms * 280, 0, 100);
+          vu.style.width = `${pct.toFixed(1)}%`;
+        }
+      }
+
+      /* =======================================================================
+         CANVAS 3: INTERACTIVE FOURIER PETAL SCULPTOR (8 Harmonics)
+         ======================================================================= */
+      const flowerWrap = document.getElementById('flowerWrap');
+      const flowerCanvas = document.getElementById('flowerCanvas');
+      const flowerCtx = flowerCanvas.getContext('2d');
+      let flowerW = 156, flowerH = 156;
+      let draggingPetal = -1;
+
+      const PETAL_COLORS = [
+        '#22d3ee', '#38bdf8', '#818cf8', '#a78bfa',
+        '#e879f9', '#fb7185', '#fb923c', '#f59e0b'
+      ];
+
+      function renderFourierFlower() {
+        const ctx = flowerCtx;
+        const w = flowerW;
+        const h = flowerH;
+        const cx = w / 2;
+        const cy = h / 2;
+        const maxR = Math.min(w, h) * 0.43;
+
+        ctx.clearRect(0, 0, w, h);
+
+        // Concentric guide rings
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.14)';
+        ctx.lineWidth = 1;
+        for (const frac of [0.33, 0.66, 1.0]) {
+          ctx.beginPath();
+          ctx.arc(cx, cy, maxR * frac, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+
+        const N = state.harmonics.length;
+
+        // Draw smooth glowing closed harmonic envelope
+        ctx.save();
+        ctx.beginPath();
+        const steps = 128;
+        for (let s = 0; s <= steps; s++) {
+          const theta = (s / steps) * Math.PI * 2 - Math.PI / 2;
+          // Smooth radial lobe interpolation across the 8 petals
+          let rNorm = 0.08;
+          for (let k = 0; k < N; k++) {
+            const kAngle = (k / N) * Math.PI * 2 - Math.PI / 2;
+            const dAngle = Math.atan2(Math.sin(theta - kAngle), Math.cos(theta - kAngle));
+            const lobe = Math.pow(Math.max(0, Math.cos(dAngle * 2.2)), 2.2);
+            rNorm += state.harmonics[k] * lobe * 0.92;
+          }
+          const r = clamp(rNorm, 0.08, 1.0) * maxR;
+          const x = cx + Math.cos(theta) * r;
+          const y = cy + Math.sin(theta) * r;
+          if (s === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+        const fillGrad = ctx.createRadialGradient(cx, cy, 4, cx, cy, maxR);
+        fillGrad.addColorStop(0, 'rgba(34, 211, 238, 0.35)');
+        fillGrad.addColorStop(0.6, 'rgba(167, 139, 250, 0.25)');
+        fillGrad.addColorStop(1, 'rgba(245, 158, 11, 0.38)');
+        ctx.fillStyle = fillGrad;
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(34, 211, 238, 0.8)';
+        ctx.lineWidth = 1.6;
+        ctx.stroke();
+        ctx.restore();
+
+        // Draw individual radial spokes & draggable petal handles
+        for (let k = 0; k < N; k++) {
+          const angle = (k / N) * Math.PI * 2 - Math.PI / 2;
+          const amp = clamp(state.harmonics[k], 0, 1);
+          const r = (0.12 + amp * 0.88) * maxR;
+          const hx = cx + Math.cos(angle) * r;
+          const hy = cy + Math.sin(angle) * r;
+
+          // Spoke
+          ctx.strokeStyle = 'rgba(148, 163, 184, 0.16)';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(cx, cy);
+          ctx.lineTo(cx + Math.cos(angle) * maxR, cy + Math.sin(angle) * maxR);
+          ctx.stroke();
+
+          // Handle dot
+          ctx.fillStyle = PETAL_COLORS[k];
+          ctx.shadowColor = PETAL_COLORS[k];
+          ctx.shadowBlur = draggingPetal === k ? 12 : 5;
+          ctx.beginPath();
+          ctx.arc(hx, hy, draggingPetal === k ? 5.5 : 4.2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.shadowBlur = 0;
+
+          // Harmonic index label at outer rim
+          const lx = cx + Math.cos(angle) * (maxR + 10);
+          const ly = cy + Math.sin(angle) * (maxR + 10);
+          ctx.fillStyle = 'rgba(148, 163, 184, 0.65)';
+          ctx.font = '600 8.5px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(`H${k + 1}`, lx, ly);
+        }
+      }
+
+      function updatePetalFromPointer(e, pickClosest = false) {
+        const rect = flowerCanvas.getBoundingClientRect();
+        const x = e.clientX - rect.left - rect.width / 2;
+        const y = e.clientY - rect.top - rect.height / 2;
+        const maxR = Math.min(rect.width, rect.height) * 0.43;
+
+        if (pickClosest) {
+          let angle = Math.atan2(y, x) + Math.PI / 2;
+          if (angle < 0) angle += Math.PI * 2;
+          const idx = Math.round((angle / (Math.PI * 2)) * state.harmonics.length) % state.harmonics.length;
+          draggingPetal = idx;
+        }
+        if (draggingPetal >= 0) {
+          const dist = Math.hypot(x, y);
+          const norm = clamp((dist / maxR - 0.12) / 0.88, 0.0, 1.0);
+          state.harmonics[draggingPetal] = norm;
+          rebuildPeriodicWave();
+          renderFourierFlower();
+          updateHarmonicReadout();
+        }
+      }
+
+      function updateHarmonicReadout() {
+        const el = document.getElementById('harmonicReadout');
+        if (!el) return;
+        const vals = state.harmonics.map((v, i) => `H${i + 1}:${Math.round(v * 100)}`).join(' ');
+        el.textContent = vals;
+      }
+
+      flowerCanvas.addEventListener('pointerdown', e => {
+        if (!state.audioPowered) initAudioEngine();
+        flowerCanvas.setPointerCapture(e.pointerId);
+        updatePetalFromPointer(e, true);
+      });
+      flowerCanvas.addEventListener('pointermove', e => {
+        if (draggingPetal >= 0) updatePetalFromPointer(e, false);
+      });
+      function endPetalDrag(e) {
+        if (draggingPetal >= 0) {
+          try { flowerCanvas.releasePointerCapture(e.pointerId); } catch (_) {}
+          draggingPetal = -1;
+          renderFourierFlower();
+        }
+      }
+      flowerCanvas.addEventListener('pointerup', endPetalDrag);
+      flowerCanvas.addEventListener('pointercancel', endPetalDrag);
+
+      /* =======================================================================
+         PRESETS & HARMONIC SHAPES
+         ======================================================================= */
+      function setHarmonicShape(arr, label) {
+        state.harmonics = arr.slice(0, 8).map(v => clamp(v, 0, 1));
+        rebuildPeriodicWave();
+        renderFourierFlower();
+        updateHarmonicReadout();
+        if (label) showToast(`Harmonic Shape: ${label}`);
+      }
+
+      function applyPreset(name) {
+        // Highlight active preset button
+        ['presetWoven', 'presetZeta', 'presetPrime'].forEach(id => {
+          document.getElementById(id)?.classList.remove('btn-active-cyan');
+        });
+
+        if (name === 'WOVEN') {
+          document.getElementById('presetWoven')?.classList.add('btn-active-cyan');
+          setTuning('HARMONIC');
+          state.timeScale = 1.0;
+          state.fadeMemory = 0.62;
+          state.corridorFeedback = 0.56;
+          state.stigmergyStrength = 0.65;
+          state.cutReturns = false;
+          setHarmonicShape([0.95, 0.45, 0.28, 0.16, 0.12, 0.08, 0.05, 0.03]);
+          // Balanced pentagon layout
+          const pts = [[0.24, 0.62], [0.40, 0.30], [0.64, 0.34], [0.76, 0.64], [0.50, 0.78]];
+          state.nodes.forEach((n, i) => { n.x = pts[i][0]; n.y = pts[i][1]; n.muted = false; });
+          showToast('Preset Loaded: WOVEN SILENCE');
+        } else if (name === 'ZETA') {
+          document.getElementById('presetZeta')?.classList.add('btn-active-cyan');
+          setTuning('ZETA ZEROS');
+          state.timeScale = 0.65;
+          state.fadeMemory = 0.84;
+          state.corridorFeedback = 0.78;
+          state.stigmergyStrength = 0.75;
+          state.cutReturns = false;
+          setHarmonicShape([0.85, 0.12, 0.55, 0.08, 0.42, 0.15, 0.62, 0.35]);
+          const pts = [[0.18, 0.50], [0.38, 0.24], [0.62, 0.24], [0.82, 0.50], [0.50, 0.76]];
+          state.nodes.forEach((n, i) => { n.x = pts[i][0]; n.y = pts[i][1]; n.muted = false; });
+          showToast('Preset Loaded: ZETA CATHEDRAL');
+        } else if (name === 'PRIME') {
+          document.getElementById('presetPrime')?.classList.add('btn-active-cyan');
+          setTuning('ULAM PRIMES');
+          state.timeScale = 1.65;
+          state.fadeMemory = 0.44;
+          state.corridorFeedback = 0.62;
+          state.stigmergyStrength = 0.92;
+          state.cutReturns = false;
+          setHarmonicShape([0.90, 0.70, 0.48, 0.32, 0.20, 0.18, 0.12, 0.08]);
+          const pts = [[0.28, 0.44], [0.46, 0.32], [0.66, 0.44], [0.60, 0.68], [0.36, 0.68]];
+          state.nodes.forEach((n, i) => { n.x = pts[i][0]; n.y = pts[i][1]; n.muted = false; });
+          showToast('Preset Loaded: PRIME PULSE');
+        }
+
+        syncSlidersToState();
+        updateCorridorPhysics();
+        updateFreezeFrequenciesAndPans();
+        updateAudioUI();
+        injectWave(0.5, 0.5, 2.0, 3.0);
+      }
+
+      /* =======================================================================
+         UI SYNCHRONIZATION & EVENT WIRING
+         ======================================================================= */
+      function setTuning(mode) {
+        if (!TUNINGS[mode]) return;
+        state.tuning = mode;
+        document.querySelectorAll('[data-tuning]').forEach(btn => {
+          btn.classList.toggle('active', btn.dataset.tuning === mode);
+        });
+        updateCorridorPhysics();
+        updateFreezeFrequenciesAndPans();
+      }
+
+      function syncSlidersToState() {
+        document.getElementById('sliderTimeScale').value = state.timeScale;
+        document.getElementById('valTimeScale').textContent = `${state.timeScale.toFixed(2)}×`;
+
+        document.getElementById('sliderFadeMem').value = state.fadeMemory;
+        document.getElementById('valFadeMem').textContent = state.fadeMemory.toFixed(2);
+
+        document.getElementById('sliderFeedback').value = state.corridorFeedback;
+        document.getElementById('valFeedback').textContent = state.corridorFeedback.toFixed(2);
+
+        document.getElementById('sliderStigmergy').value = state.stigmergyStrength;
+        document.getElementById('valStigmergy').textContent = state.stigmergyStrength.toFixed(2);
+
+        document.getElementById('sliderTau').value = state.tauSamples;
+        document.getElementById('valTau').textContent = `${state.tauSamples} smpl`;
+      }
+
+      function updateAudioUI() {
+        const btnPower = document.getElementById('btnPower');
+        const ledPower = document.getElementById('ledPower');
+        const txtPower = document.getElementById('txtPower');
+        const audioStateLabel = document.getElementById('audioStateLabel');
+
+        btnPower.classList.toggle('powered', state.audioPowered);
+        ledPower.className = state.audioPowered ? 'led green' : 'led amber';
+        txtPower.textContent = state.audioPowered ? 'DSP ACTIVE' : 'POWER ON';
+        audioStateLabel.textContent = state.audioPowered ? `DSP ONLINE · ${state.tuning}` : 'DSP STANDBY';
+
+        const btnMic = document.getElementById('btnMic');
+        const ledMic = document.getElementById('ledMic');
+        btnMic.classList.toggle('btn-active-cyan', state.micActive);
+        ledMic.className = state.micActive ? 'led cyan' : 'led';
+
+        const btnRec = document.getElementById('btnRec');
+        const ledRec = document.getElementById('ledRec');
+        const txtRec = document.getElementById('txtRec');
+        btnRec.classList.toggle('btn-active-danger', state.recording);
+        ledRec.className = state.recording ? 'led red' : 'led';
+        if (!state.recording) txtRec.textContent = 'REC AUDIO';
+
+        const btnCut = document.getElementById('btnCutReturns');
+        btnCut.classList.toggle('btn-active-danger', state.cutReturns);
+        btnCut.textContent = state.cutReturns ? 'RETURNS CUT' : 'CUT RETURNS';
+
+        const btnFreeze = document.getElementById('btnFreeze');
+        btnFreeze.classList.toggle('btn-active-violet', state.phaseFreeze);
+        btnFreeze.textContent = state.phaseFreeze ? 'FREEZE: ON' : 'PHASE FREEZE';
+
+        const btnRun = document.getElementById('btnRunPause');
+        const ledRun = document.getElementById('ledRun');
+        const txtRun = document.getElementById('txtRunPause');
+        btnRun.classList.toggle('btn-active-cyan', state.running);
+        ledRun.className = state.running ? 'led green' : 'led amber';
+        txtRun.textContent = state.running ? 'PAUSE' : 'RUN';
+
+        const loopMeta = document.getElementById('loopStatusMeta');
+        if (loopMeta) {
+          loopMeta.textContent = !state.running
+            ? 'PAUSED'
+            : state.cutReturns
+              ? 'OPEN LOOP'
+              : 'AUTONOMOUS';
+        }
+      }
+
+      // Wire Header Controls
+      document.querySelectorAll('[data-tuning]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          setTuning(btn.dataset.tuning);
+          updateAudioUI();
+          showToast(`Tuning Regime: ${TUNINGS[btn.dataset.tuning].label}`);
+        });
+      });
+
+      document.getElementById('btnPower').addEventListener('click', () => {
+        if (!state.audioPowered) {
+          initAudioEngine();
+        } else if (audio.ctx) {
+          if (audio.ctx.state === 'running') {
+            audio.ctx.suspend();
+            state.audioPowered = false;
+            showToast('Audio DSP Suspended');
+          } else {
+            audio.ctx.resume();
+            state.audioPowered = true;
+            showToast('Audio DSP Resumed');
+          }
+          updateAudioUI();
+        }
+      });
+
+      document.getElementById('btnMic').addEventListener('click', toggleMicInput);
+      document.getElementById('btnRec').addEventListener('click', toggleRecording);
+
+      // Wire Interventions & Presets
+      document.getElementById('btnRunPause').addEventListener('click', () => {
+        if (!state.audioPowered) initAudioEngine();
+        state.running = !state.running;
+        updateAudioUI();
+      });
+
+      document.getElementById('btnInject').addEventListener('click', () => {
+        if (!state.audioPowered) initAudioEngine();
+        const rx = 0.25 + Math.random() * 0.5;
+        const ry = 0.25 + Math.random() * 0.5;
+        injectWave(rx, ry, 2.3, 3.0);
+        state.rings.push({ x: rx, y: ry, radius: 0.01, alpha: 0.85, color: '#22d3ee' });
+        triggerFieldImpulseThump(rx, ry);
+      });
+
+      document.getElementById('btnCutReturns').addEventListener('click', () => {
+        state.cutReturns = !state.cutReturns;
+        updateCorridorPhysics();
+        updateAudioUI();
+        showToast(state.cutReturns ? 'Causal Ablation: Inter-node & Delay Returns Severed' : 'Feedback Corridors Restored');
+      });
+
+      document.getElementById('btnFreeze').addEventListener('click', () => {
+        if (!state.audioPowered) initAudioEngine();
+        state.phaseFreeze = !state.phaseFreeze;
+        updateCorridorPhysics();
+        updateFreezeFrequenciesAndPans();
+        updateAudioUI();
+        showToast(state.phaseFreeze ? 'Adelic Phase Freezer Engaged' : 'Phase Freezer Released');
+      });
+
+      document.getElementById('btnClearPaths').addEventListener('click', () => {
+        for (let i = 0; i < 5; i++) state.stigmergy[i].fill(0);
+        showToast('Stigmergy Desire-Paths Cleared');
+      });
+
+      document.getElementById('presetWoven').addEventListener('click', () => { if (!state.audioPowered) initAudioEngine(); applyPreset('WOVEN'); });
+      document.getElementById('presetZeta').addEventListener('click', () => { if (!state.audioPowered) initAudioEngine(); applyPreset('ZETA'); });
+      document.getElementById('presetPrime').addEventListener('click', () => { if (!state.audioPowered) initAudioEngine(); applyPreset('PRIME'); });
+
+      // Wire Fourier Shape Buttons
+      document.getElementById('shapeSine').addEventListener('click', () =>
+        setHarmonicShape([1.0, 0.05, 0.02, 0.0, 0.0, 0.0, 0.0, 0.0], 'SINE'));
+      document.getElementById('shapeGlass').addEventListener('click', () =>
+        setHarmonicShape([0.85, 0.08, 0.52, 0.06, 0.40, 0.12, 0.65, 0.38], 'GLASS'));
+      document.getElementById('shapeOrgan').addEventListener('click', () =>
+        setHarmonicShape([0.92, 0.78, 0.64, 0.50, 0.36, 0.28, 0.20, 0.16], 'ORGAN'));
+      document.getElementById('shapeRandom').addEventListener('click', () => {
+        const rand = Array.from({ length: 8 }, (_, i) => clamp(Math.random() * (1 - i * 0.06) + 0.05, 0, 1));
+        setHarmonicShape(rand, 'RANDOM');
+      });
+
+      // Wire Sliders
+      document.getElementById('sliderTau').addEventListener('input', e => {
+        state.tauSamples = clamp(parseInt(e.target.value, 10), 1, 40);
+        document.getElementById('valTau').textContent = `${state.tauSamples} smpl`;
+      });
+
+      document.getElementById('sliderTimeScale').addEventListener('input', e => {
+        state.timeScale = clamp(parseFloat(e.target.value), 0.3, 2.5);
+        document.getElementById('valTimeScale').textContent = `${state.timeScale.toFixed(2)}×`;
+      });
+
+      document.getElementById('sliderFadeMem').addEventListener('input', e => {
+        state.fadeMemory = clamp(parseFloat(e.target.value), 0.15, 1.0);
+        document.getElementById('valFadeMem').textContent = state.fadeMemory.toFixed(2);
+      });
+
+      document.getElementById('sliderFeedback').addEventListener('input', e => {
+        state.corridorFeedback = clamp(parseFloat(e.target.value), 0.0, 0.88);
+        document.getElementById('valFeedback').textContent = state.corridorFeedback.toFixed(2);
+        updateCorridorPhysics();
+      });
+
+      document.getElementById('sliderStigmergy').addEventListener('input', e => {
+        state.stigmergyStrength = clamp(parseFloat(e.target.value), 0.0, 1.0);
+        document.getElementById('valStigmergy').textContent = state.stigmergyStrength.toFixed(2);
+      });
+
+      /* =======================================================================
+         RESIZE HANDLING & MAIN ANIMATION LOOP
+         ======================================================================= */
+      function handleResize() {
+        const f = resizeCanvasToParent(fieldCanvas, fieldStage);
+        fieldW = f.w; fieldH = f.h;
+
+        const s = resizeCanvasToParent(scopeCanvas, scopeWrap);
+        scopeW = s.w; scopeH = s.h;
+
+        const fl = resizeCanvasToParent(flowerCanvas, flowerWrap);
+        flowerW = fl.w; flowerH = fl.h;
+
+        renderFourierFlower();
+        renderFieldCanvas();
+      }
+
+      let lastFrameTime = 0;
+      function animate(now) {
+        if (!lastFrameTime) lastFrameTime = now;
+        const dt = Math.min((now - lastFrameTime) / 1000, 0.05);
+        lastFrameTime = now;
+
+        // Live recording timer
+        if (state.recording) {
+          const sec = Math.floor((now - state.recStartTime) / 1000);
+          const mm = String(Math.floor(sec / 60)).padStart(2, '0');
+          const ss = String(sec % 60).padStart(2, '0');
+          const txtRec = document.getElementById('txtRec');
+          if (txtRec) txtRec.textContent = `REC ${mm}:${ss}`;
+        }
+
+        processMicOnset(now);
+        stepSimulation(dt);
+        renderFieldCanvas();
+        renderTakensScope();
+
+        requestAnimationFrame(animate);
+      }
+
+      window.addEventListener('resize', handleResize);
+      window.onload = function () {
+        handleResize();
+        syncSlidersToState();
+        updateHarmonicReadout();
+        updateCorridorPhysics();
+        updateAudioUI();
+        // Seed an initial gentle wave ripple so the field is immediately alive visually
+        injectWave(0.5, 0.5, 1.7, 3.0);
+        requestAnimationFrame(animate);
+      };
+    })();
+  </script>
+</body>
+</html>
